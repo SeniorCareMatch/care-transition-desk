@@ -1,5 +1,5 @@
-import { EasyHandoffPrototype } from "@/components/easy-handoff-prototype";
+import { FrictionlessDesk } from "@/components/frictionless-desk";
 
 export default function Home() {
-  return <EasyHandoffPrototype />;
+  return <FrictionlessDesk />;
 }
