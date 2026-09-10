@@ -1,5 +1,5 @@
-import { CoordinatorPrototype } from "@/components/coordinator-prototype";
+import { EasyHandoffPrototype } from "@/components/easy-handoff-prototype";
 
 export default function Home() {
-  return <CoordinatorPrototype />;
+  return <EasyHandoffPrototype />;
 }
