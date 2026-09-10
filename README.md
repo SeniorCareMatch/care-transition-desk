@@ -5,7 +5,8 @@ portal. It focuses the experience on a discharge planner's immediate questions:
 which patients are leaving soon, which cases need action, and which verified
 homes have an appropriate bed.
 
-The prototype uses sample data only. Forms do not send or persist information.
+The prototype uses sample data only. Forms do not send or persist information,
+and no patient records are involved.
 
 ## Included flows
 
