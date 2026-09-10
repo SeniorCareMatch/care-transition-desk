@@ -1,5 +1,5 @@
-import { CareDesk } from "@/components/care-desk";
+import { OriginalDesk } from "@/components/original-desk";
 
 export default function Home() {
-  return <CareDesk />;
+  return <OriginalDesk />;
 }
