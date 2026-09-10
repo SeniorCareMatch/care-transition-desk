@@ -1,5 +1,5 @@
-import { FrictionlessDesk } from "@/components/frictionless-desk";
+import { CareDesk } from "@/components/care-desk";
 
 export default function Home() {
-  return <FrictionlessDesk />;
+  return <CareDesk />;
 }
