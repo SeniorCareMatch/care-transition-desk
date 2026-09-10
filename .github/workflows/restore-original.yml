@@ -1,0 +1,57 @@
+name: Restore preferred dashboard
+on:
+  push:
+    paths:
+      - .github/workflows/restore-original.yml
+permissions:
+  contents: write
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore and enhance preferred version
+        shell: python
+        run: |
+          import pathlib, subprocess
+          source = subprocess.check_output([
+            "git", "show",
+            "0b3d0c662d82f48efc34eb6901ee0f606e3a769f:src/components/coordinator-prototype.tsx"
+          ], text=True)
+          source = source.replace("export function CoordinatorPrototype()", "export function OriginalDesk()")
+          source = source.replace(
+            '  const [vacanciesOnly, setVacanciesOnly] = useState(true);',
+            '  const [vacanciesOnly, setVacanciesOnly] = useState(true);\n  const [memoryCare, setMemoryCare] = useState(false);\n  const [behavioralSupport, setBehavioralSupport] = useState(false);\n  const [withinTenMiles, setWithinTenMiles] = useState(false);'
+          )
+          source = source.replace(
+            '    () => homes.filter((home) => (!medicaidOnly || home.types.includes("Medicaid")) && (!vacanciesOnly || home.beds > 0)),\n    [medicaidOnly, vacanciesOnly],',
+            '    () => homes.filter((home) =>\n      (!medicaidOnly || home.types.includes("Medicaid")) &&\n      (!vacanciesOnly || home.beds > 0) &&\n      (!memoryCare || home.types.includes("Memory care")) &&\n      (!behavioralSupport || home.types.includes("Behavioral")) &&\n      (!withinTenMiles || Number.parseFloat(home.distance) <= 10)\n    ),\n    [behavioralSupport, medicaidOnly, memoryCare, vacanciesOnly, withinTenMiles],'
+          )
+          old_call = '{view === "facilities" && <Facilities homes={visibleHomes} medicaidOnly={medicaidOnly} vacanciesOnly={vacanciesOnly} setMedicaidOnly={setMedicaidOnly} setVacanciesOnly={setVacanciesOnly} onPlace={openPlacement} />}'
+          new_call = '{view === "facilities" && <Facilities homes={visibleHomes} medicaidOnly={medicaidOnly} vacanciesOnly={vacanciesOnly} memoryCare={memoryCare} behavioralSupport={behavioralSupport} withinTenMiles={withinTenMiles} setMedicaidOnly={setMedicaidOnly} setVacanciesOnly={setVacanciesOnly} setMemoryCare={setMemoryCare} setBehavioralSupport={setBehavioralSupport} setWithinTenMiles={setWithinTenMiles} onPlace={openPlacement} />}'
+          source = source.replace(old_call, new_call)
+          old_sig = 'function Facilities({ homes: visible, medicaidOnly, vacanciesOnly, setMedicaidOnly, setVacanciesOnly, onPlace }: { homes: typeof homes; medicaidOnly: boolean; vacanciesOnly: boolean; setMedicaidOnly: (value: boolean) => void; setVacanciesOnly: (value: boolean) => void; onPlace: () => void }) {'
+          new_sig = 'function Facilities({ homes: visible, medicaidOnly, vacanciesOnly, memoryCare, behavioralSupport, withinTenMiles, setMedicaidOnly, setVacanciesOnly, setMemoryCare, setBehavioralSupport, setWithinTenMiles, onPlace }: { homes: typeof homes; medicaidOnly: boolean; vacanciesOnly: boolean; memoryCare: boolean; behavioralSupport: boolean; withinTenMiles: boolean; setMedicaidOnly: (value: boolean) => void; setVacanciesOnly: (value: boolean) => void; setMemoryCare: (value: boolean) => void; setBehavioralSupport: (value: boolean) => void; setWithinTenMiles: (value: boolean) => void; onPlace: () => void }) {'
+          source = source.replace(old_sig, new_sig)
+          heading = '      <Heading eyebrow="Verified provider network" title="Find an available bed" description="Filter by what matters for this discharge. Contact details and private notes remain visible only to verified coordinators." action={<Button variant="outline" className="gap-2 bg-white"><MapPin className="size-4" /> Near Harborview</Button>} />'
+          patient = heading + '\n      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 sm:flex-row sm:items-center"><div className="flex size-10 items-center justify-center rounded-lg bg-white text-teal-700"><Users className="size-5" /></div><div className="flex-1"><p className="text-sm font-semibold">Matching for M. Carter</p><p className="text-xs text-slate-600">Discharging today · Memory care · Medicaid pending</p></div><Button variant="outline" size="sm" className="bg-white">Change patient</Button></div>'
+          source = source.replace(heading, patient)
+          source = source.replace(
+            '<FilterChip>Memory care</FilterChip><FilterChip>Within 10 miles</FilterChip><FilterChip>Behavioral support</FilterChip>',
+            '<FilterChip active={memoryCare} onClick={() => setMemoryCare(!memoryCare)}>Memory care</FilterChip><FilterChip active={withinTenMiles} onClick={() => setWithinTenMiles(!withinTenMiles)}>Within 10 miles</FilterChip><FilterChip active={behavioralSupport} onClick={() => setBehavioralSupport(!behavioralSupport)}>Behavioral support</FilterChip>'
+          )
+          pathlib.Path("src/components/original-desk.tsx").write_text(source)
+          pathlib.Path("src/app/page.tsx").write_text('import { OriginalDesk } from "@/components/original-desk";\n\nexport default function Home() {\n  return <OriginalDesk />;\n}\n')
+          pathlib.Path("src/app/clear").mkdir(parents=True, exist_ok=True)
+          pathlib.Path("src/app/clear/page.tsx").write_text('import { CareDesk } from "@/components/care-desk";\n\nexport default function ClearVersion() {\n  return <CareDesk />;\n}\n')
+          pathlib.Path(".github/workflows/restore-original.yml").unlink()
+      - name: Publish restored version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Restore preferred dashboard and Find Beds filters"
+          git push
